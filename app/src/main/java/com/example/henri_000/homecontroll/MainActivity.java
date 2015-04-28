@@ -1,12 +1,12 @@
 package com.example.henri_000.homecontroll;
 
 import android.app.AlertDialog;
-import android.app.Fragment;
 import android.content.Context;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -14,8 +14,12 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.Switch;
-import android.content.SharedPreferences;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.io.PrintWriter;
@@ -27,14 +31,13 @@ import android.os.StrictMode;
 import android.widget.EditText;
 import android.content.DialogInterface;
 
-import static android.app.PendingIntent.getActivity;
 
 
-public class MainActivity extends ActionBarActivity {
+public class MainActivity extends ActionBarActivity
+{
+    private String inputIP;
     private Networktask networktask;
     private Checksocket checksocket;
-    private Dialog dialog = new Dialog();
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -120,6 +123,22 @@ public class MainActivity extends ActionBarActivity {
                 }
             }
         });
+        switch2.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                                               @Override
+                                               public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+
+                                                   if(isChecked)
+                                                   {
+
+                                                   }
+                                                   else
+                                                   {
+
+                                                   }
+                                               }
+                                           }
+        );
+
     } //OnCreate() end
 
 
@@ -128,7 +147,7 @@ public class MainActivity extends ActionBarActivity {
 
         @Override
         protected Void doInBackground(Void... params) {
-            SocketAddress sockadr = new InetSocketAddress(dialog.getIp(), 9090);
+            SocketAddress sockadr = new InetSocketAddress(inputIP, 9090);
             socket = new Socket();
             try {
                 socket.connect(sockadr, 5000);
@@ -146,7 +165,7 @@ public class MainActivity extends ActionBarActivity {
         @Override
         protected Void doInBackground(Void... params) {
             try {
-                SocketAddress sockadr = new InetSocketAddress(dialog.getIp(), 9090);
+                SocketAddress sockadr = new InetSocketAddress(inputIP, 9090);
                 socket = new Socket();
                 socket.connect(sockadr, 5000);
                 if (socket.isConnected()) {
@@ -166,53 +185,140 @@ public class MainActivity extends ActionBarActivity {
 
         @Override
         protected void onPostExecute(Void input) {
+            alertConnected();
         }
-        public void toggleON() throws IOException {
-            printwriter.println("TOGGLE\n ON unit 1");
+        public void toggleON() throws IOException
+        {
+            printwriter.println("TOGGLE\nON unit 1");
         }
-        public void toggleOFF() throws IOException {
-            printwriter.println("TOGGLE\n OFF unit 1");
+        public void toggleOFF() throws IOException
+        {
+            printwriter.println("TOGGLE\nOFF unit 1");
         }
     }
 
 
-    public void alertConnectFail() {
+    public void alertConnectFail()
+    {
         AlertDialog.Builder myalert = new AlertDialog.Builder(this);
         myalert.setMessage(R.string.connectFail).create();
         myalert.setTitle(R.string.connectFailTitle).create();
         myalert.show();
     }
-    public void alertConnected() {
+    public void alertConnected()
+    {
         AlertDialog.Builder myalert = new AlertDialog.Builder(this);
         myalert.setMessage(R.string.connectSuccess).create();
         myalert.setTitle(R.string.connectSuccessTitle).create();
         myalert.show();
     }
-    public void alertIP() {
+    public void alertIP()
+    {
         AlertDialog.Builder myalert = new AlertDialog.Builder(this);
         myalert.setMessage(R.string.ipError).create();
         myalert.setTitle(R.string.connectFailTitle).create();
         myalert.show();
     }
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
+    public boolean onCreateOptionsMenu(Menu menu)
+    {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
     }
 
     @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
+    public boolean onOptionsItemSelected(MenuItem item)
+    {
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            dialog.showInputDialog(MainActivity.this);
+        if (id == R.id.action_settings)
+        {
+            showInputDialog();
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    public void showInputDialog() {
+
+        // get prompts.xml view
+        LayoutInflater layoutInflater = LayoutInflater.from(MainActivity.this);
+        View promptView = layoutInflater.inflate(R.layout.input_dialog, null);
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(MainActivity.this);
+        alertDialogBuilder.setView(promptView);
+
+        final EditText editText = (EditText) promptView.findViewById(R.id.edittext);
+        // setup a dialog window
+        editText.setText(readFromFile());
+        alertDialogBuilder.setCancelable(false)
+                .setPositiveButton("OK", new DialogInterface.OnClickListener()
+                {
+                    public void onClick(DialogInterface dialog, int id)
+                    {
+                        inputIP = editText.getText().toString();
+                        writeToFile(inputIP);
+                        //checksocket = new Checksocket();
+                        //checksocket.execute();
+                    }
+                })
+                .setNegativeButton("Cancel",
+                        new DialogInterface.OnClickListener()
+                        {
+                            public void onClick(DialogInterface dialog, int id)
+                            {
+                                dialog.cancel();
+                            }
+                        });
+
+        // create an alert dialog
+        AlertDialog alert = alertDialogBuilder.create();
+        alert.show();
+    }
+
+    private void writeToFile(String data) {
+        try {
+            OutputStreamWriter outputStreamWriter = new OutputStreamWriter(openFileOutput("ip.txt", Context.MODE_PRIVATE));
+            outputStreamWriter.write(data);
+            outputStreamWriter.close();
+        }
+        catch (IOException e) {
+            Log.e("Exception", "File write failed: " + e.toString());
+        }
+    }
+
+
+    private String readFromFile() {
+
+        String savedIP = "";
+
+        try {
+            InputStream inputStream = openFileInput("ip.txt");
+
+            if (inputStream != null) {
+                InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
+                BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+                String receiveString = "";
+                StringBuilder stringBuilder = new StringBuilder();
+
+                while ((receiveString = bufferedReader.readLine()) != null) {
+                    stringBuilder.append(receiveString);
+                }
+
+                inputStream.close();
+                savedIP = stringBuilder.toString();
+            }
+        }
+        catch (FileNotFoundException e) {
+            Log.e("login activity", "File not found: " + e.toString());
+        } catch (IOException e) {
+            Log.e("login activity", "Can not read file: " + e.toString());
+        }
+
+        return savedIP;
     }
 }

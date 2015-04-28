@@ -17,17 +17,10 @@ import static android.app.PendingIntent.getActivity;
  */
 public class Dialog extends Fragment {
     private String inputIP;
-    private SharedPreferences.Editor editor;
-    private SharedPreferences sharedPref;
-
+    SharedPreferences sharedPref;
 
     public void showInputDialog(MainActivity mainActivity) {
-
         sharedPref = mainActivity.getPreferences(Context.MODE_PRIVATE);
-        editor = sharedPref.edit();
-
-        String defaultValue = mainActivity.getResources().getString(R.string.enter_ip_here);
-        inputIP = sharedPref.getString(getString(R.string.saved_ip), defaultValue);
 
         // get prompts.xml view
         LayoutInflater layoutInflater = LayoutInflater.from(mainActivity);
@@ -42,7 +35,9 @@ public class Dialog extends Fragment {
                 {
                     public void onClick(DialogInterface dialog, int id) {
                         inputIP = editText.getText().toString();
-                        editor.putString(getString(R.string.saved_ip), editText.getText().toString());
+
+                        SharedPreferences.Editor editor = sharedPref.edit();
+                        editor.putString(getString(R.string.saved_ip), inputIP);
                         editor.commit();
                     }
                 })

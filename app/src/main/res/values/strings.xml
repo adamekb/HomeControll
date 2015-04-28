@@ -21,7 +21,6 @@
     <string name="connectSuccess">Connected!</string>
     <string name="connectSuccessTitle">Success</string>
     <string name="ipError">Enter IP from settings first</string>
-    <string name="saved_ip"></string>
 
 
 
